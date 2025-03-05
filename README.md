@@ -1,4 +1,4 @@
-# Claude-Code
+# koding.js
 
 A lightweight reimplementation of claude-code assistant functionality without any external dependencies. This project provides a simple CLI interface to interact with Claude for coding tasks.
 
