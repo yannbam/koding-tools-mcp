@@ -1,71 +1,84 @@
-# koding.js
+# Model Context Protocol (MCP) Implementation
 
-A lightweight reimplementation of claude-code assistant functionality without any external dependencies. This project provides a simple CLI interface to interact with Claude for coding tasks.
+This is an implementation of the Model Context Protocol (MCP) based on the 2024-11-05 protocol revision. It provides a standardized way for servers to expose resources and tools to clients.
 
 ## Features
 
-- Interact with Claude through a command-line interface
-- Execute bash commands in a persistent shell
-- Read, write, and edit files
-- Search through files using grep
-- List directory contents
-- Run agents for more complex tasks
+### Tools Support
+- List available tools
+- Call tools with arguments
+- Receive tool execution results
+- Receive notifications when the tool list changes
 
-## Prerequisites
+### Resources Support
+- List available resources
+- Read resource contents
+- Subscribe to resource updates
+- Resource templates with URI templates
+- Receive notifications when the resource list changes
 
-- Node.js
-- Bun runtime
-- Anthropic API key
+## Getting Started
 
-## Installation
+### Prerequisites
+- Node.js (version 14 or higher)
+- npm
 
+### Installation
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/claude-code.git
-cd claude-code
-
-# Install dependencies (note: this project has no external dependencies)
-bun install
+npm install
 ```
 
-## Configuration
-
-Set your Anthropic API key as an environment variable:
-
+### Running the Server
 ```bash
-export ANTHROPIC_API_KEY=your_api_key_here
+npm start
+```
+This starts the MCP server on port 3000 (default).
+
+### Running the Client Example
+```bash
+npm run client
+```
+This runs a simple client that connects to the MCP server, lists available tools and resources, and demonstrates basic functionality.
+
+## Protocol Details
+
+### Capabilities
+The server supports the following capabilities:
+```json
+{
+  "capabilities": {
+    "tools": {
+      "listChanged": true
+    },
+    "resources": {
+      "subscribe": true,
+      "listChanged": true
+    }
+  }
+}
 ```
 
-## Usage
+### Supported Endpoints
 
-```bash
-# Run with default prompt
-bun run index.js
+#### Tools
+- `tools/list`: List available tools
+- `tools/call`: Call a tool with arguments
 
-# Run with custom prompt
-bun run index.js -p "create a simple express server"
-```
+#### Resources
+- `resources/list`: List available resources
+- `resources/read`: Read resource contents
+- `resources/subscribe`: Subscribe to resource updates
+- `resources/templates/list`: List available resource templates
 
-## How It Works
+### Notifications
+- `notifications/capabilities`: Server capabilities
+- `notifications/resources/list_changed`: Resource list changed
+- `notifications/resources/updated`: Resource updated
+- `notifications/tools/list_changed`: Tool list changed
 
-Claude-Code uses the Anthropic API to interact with Claude AI models. It provides a set of tools that Claude can use to help with coding tasks:
+## Implementation Notes
 
-- **BashTool**: Execute bash commands
-- **FileReadTool**: Read file contents
-- **FileWriteTool**: Write to files
-- **FileEditTool**: Edit existing files
-- **GrepTool**: Search through files
-- **GlobTool**: Find files matching patterns
-- **LSTool**: List directory contents
-- **AgentTool**: Run more complex tasks
+This implementation supports all the tools in the `tools.js` file and provides a simple interface for accessing resources on the filesystem. It uses WebSockets for real-time communication between the server and clients.
 
-The system maintains a persistent shell session, allowing for stateful interactions across commands.
-
-## Project Structure
-
-- `api.js`: Core API interaction with Anthropic
-- `index.js`: Entry point for the CLI
-- `prompts.js`: System prompts for Claude
-- `tools.js`: Tool registration
-- `tools/`: Individual tool implementations
-- `persistent_shell.js`: Manages persistent shell sessions
+## License
+MIT

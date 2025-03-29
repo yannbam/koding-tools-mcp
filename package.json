@@ -1,5 +1,24 @@
 {
-  "name": "koding.js",
-  "module": "index.js",
-  "type": "module"
+  "name": "mcp-implementation",
+  "version": "1.0.0",
+  "description": "Model Context Protocol (MCP) Direct Mode Implementation",
+  "type": "module",
+  "main": "mcp.js",
+  "scripts": {
+    "start": "node mcp.js",
+    "client": "node mcp-client.js",
+    "example": "node example.js",
+    "test": "node test-mcp.js",
+    "test-server": "DEBUG=true node mcp.js"
+  },
+  "bin": {
+    "mcp-example": "./example.js"
+  },
+  "keywords": [
+    "MCP",
+    "AI",
+    "tools"
+  ],
+  "author": "",
+  "license": "MIT"
 }

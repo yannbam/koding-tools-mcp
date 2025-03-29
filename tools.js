@@ -6,6 +6,7 @@ import * as GrepTool from './tools/grep.js';
 import * as GlobTool from './tools/glob.js';
 import * as LSTool from './tools/ls.js';
 import * as AgentTool from './tools/agent.js';
+import * as ArchitectTool from './tools/architect.js';
 
 export const tools = [
   BashTool,
@@ -15,5 +16,6 @@ export const tools = [
   GrepTool,
   GlobTool,
   LSTool,
-  AgentTool
+  AgentTool,
+  ArchitectTool
 ];

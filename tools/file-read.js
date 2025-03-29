@@ -61,10 +61,10 @@ const handler = async (toolCall) => {
   const { file_path, offset = 1, limit } = toolCall.input;
   
   try {
-    // Check if file exists
     if (!existsSync(file_path)) {
       return {
-        error: `File does not exist: ${file_path}`
+        type: 'error',
+        resultForAssistant: `File not found: ${file_path}`
       };
     }
 
@@ -84,7 +84,8 @@ const handler = async (toolCall) => {
         };
       } catch (error) {
         return {
-          error: `Error reading image file: ${error.message}`
+          type: 'error',
+          resultForAssistant: `Error reading image file: ${error.message}`
         };
       }
     }
@@ -93,7 +94,8 @@ const handler = async (toolCall) => {
     // Check file size for text files
     if (fileSize > MAX_OUTPUT_SIZE && !offset && !limit) {
       return {
-        error: `File content (${Math.round(fileSize / 1024)}KB) exceeds maximum allowed size (${Math.round(MAX_OUTPUT_SIZE / 1024)}KB). Please use offset and limit parameters to read specific portions of the file.`
+        type: 'error',
+        resultForAssistant: `File content (${Math.round(fileSize / 1024)}KB) exceeds maximum allowed size (${Math.round(MAX_OUTPUT_SIZE / 1024)}KB). Please use offset and limit parameters to read specific portions of the file.`
       };
     }
 
@@ -117,18 +119,26 @@ const handler = async (toolCall) => {
     // Check if selected content is too large
     if (selectedContent.length > MAX_OUTPUT_SIZE) {
       return {
-        error: `Selected content (${Math.round(selectedContent.length / 1024)}KB) exceeds maximum allowed size (${Math.round(MAX_OUTPUT_SIZE / 1024)}KB). Please use a smaller limit or read a different portion of the file.`
+        type: 'error',
+        resultForAssistant: `Selected content (${Math.round(selectedContent.length / 1024)}KB) exceeds maximum allowed size (${Math.round(MAX_OUTPUT_SIZE / 1024)}KB). Please use a smaller limit or read a different portion of the file.`
       };
     }
 
-    return {
+    const data = {
       type: 'text',
-      content: selectedContent,
-      numLines: truncatedLines.length,
-      startLine: offset,
-      totalLines,
-      fileName: path.basename(file_path),
-      extension: extname(file_path).slice(1)
+      file: {
+        filePath: file_path,
+        content: selectedContent,
+        numLines: truncatedLines.length,
+        startLine: offset,
+        totalLines,
+      },
+    };
+
+    return {
+      type: 'result',
+      data,
+      resultForAssistant: renderResultForAssistant(data),
     };
   } catch (error) {
     return {
@@ -136,5 +146,44 @@ const handler = async (toolCall) => {
     };
   }
 };
+
+const renderResultForAssistant = (data) => {
+  switch (data.type) {
+    case 'image':
+      return [
+        {
+          type: 'image',
+          source: {
+            type: 'base64',
+            data: data.file.base64,
+            media_type: data.file.type,
+          },
+        },
+      ];
+    case 'text':
+      return addLineNumbers(data.file);
+  }
+};
+
+export function addLineNumbers(content, startLine) {
+  if (!content) {
+    return ''
+  }
+
+  return content
+    .split(/\r?\n/)
+    .map((line, index) => {
+      const lineNum = index + startLine
+      const numStr = String(lineNum)
+      // Handle large numbers differently
+      if (numStr.length >= 6) {
+        return `${numStr}\t${line}`
+      }
+      // Regular numbers get padding to 6 characters
+      const n = numStr.padStart(6, ' ')
+      return `${n}\t${line}`
+    })
+    .join('\n') // TODO: This probably won't work for Windows
+}
 
 export { name, schema, handler };

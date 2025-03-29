@@ -1,23 +1,82 @@
-import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'fs';
-import { dirname, isAbsolute, relative, resolve, sep } from 'path';
+import { existsSync, mkdirSync, readFileSync, statSync } from 'fs';
 import { EOL } from 'os';
+import { dirname, extname, isAbsolute, relative, resolve } from 'path';
 
-const name = 'FileWriteTool';
+const MAX_LINES_TO_RENDER = 10;
+const MAX_LINES_TO_RENDER_FOR_ASSISTANT = 16000;
+const TRUNCATED_MESSAGE =
+  '<response clipped><NOTE>To save on context only part of this file has been shown to you. You should retry this tool after you have searched inside the file with Grep in order to find the line numbers of what you are looking for.</NOTE>';
 
-const DESCRIPTION = 'Write a file to the local filesystem.';
+const name = "FileWriteTool";
 
-const PROMPT = `Write a file to the local filesystem. Overwrites the existing file if there is one.
+function detectFileEncoding(filePath) {
+  // Simple implementation - in a real app, you'd use a library like jschardet
+  return 'utf-8';
+}
 
-Before using this tool:
+function detectLineEndings(filePath) {
+  try {
+    const content = readFileSync(filePath, 'utf8');
+    if (content.includes('\r\n')) return '\r\n';
+    if (content.includes('\n')) return '\n';
+    if (content.includes('\r')) return '\r';
+    return EOL;
+  } catch (e) {
+    return EOL;
+  }
+}
 
-1. Use the ReadFile tool to understand the file's contents and context
+async function detectRepoLineEndings(cwd) {
+  // Default to OS line endings if we can't detect from repo
+  return EOL;
+}
 
-2. Directory Verification (only applicable when creating new files):
-   - Use the LS tool to verify the parent directory exists and is the correct location`;
+function writeTextContent(filePath, content, encoding, lineEndings) {
+  // Replace line endings and write file
+  const normalizedContent = content.replace(/\r\n|\r|\n/g, lineEndings);
+  mkdirSync(dirname(filePath), { recursive: true });
+  require('fs').writeFileSync(filePath, normalizedContent, encoding);
+}
+
+function getPatch({ filePath, fileContents, oldStr, newStr }) {
+  // Simple diff implementation
+  const oldLines = oldStr.split(/\r?\n/);
+  const newLines = newStr.split(/\r?\n/);
+  
+  // Return a simplified patch structure
+  return [{
+    oldStart: 1,
+    oldLines: oldLines.length,
+    newStart: 1,
+    newLines: newLines.length,
+    lines: newLines.slice(0, Math.min(10, newLines.length))
+  }];
+}
+
+function addLineNumbers({ content, startLine }) {
+  if (!content) {
+    return '';
+  }
+
+  return content
+    .split(/\r?\n/)
+    .map((line, index) => {
+      const lineNum = index + startLine;
+      const numStr = String(lineNum);
+      // Handle large numbers differently
+      if (numStr.length >= 6) {
+        return `${numStr}\t${line}`;
+      }
+      // Regular numbers get padding to 6 characters
+      const n = numStr.padStart(6, ' ');
+      return `${n}\t${line}`;
+    })
+    .join('\n');
+}
 
 const schema = {
   name: name,
-  description: DESCRIPTION,
+  description: "Write a file to the local filesystem.",
   parameters: {
     type: "object",
     properties: {
@@ -34,78 +93,14 @@ const schema = {
   }
 };
 
-// Helper function to detect file encoding
-function detectFileEncoding(filePath) {
-  try {
-    // Simple implementation - in a real tool this would be more sophisticated
-    return 'utf-8';
-  } catch (error) {
-    return 'utf-8'; // Default to UTF-8
-  }
-}
-
-// Helper function to detect line endings
-function detectLineEndings(filePath) {
-  try {
-    const content = readFileSync(filePath, 'utf-8');
-    if (content.includes('\r\n')) return '\r\n';
-    if (content.includes('\n')) return '\n';
-    return EOL; // Default to system EOL
-  } catch (error) {
-    return EOL; // Default to system EOL
-  }
-}
-
-// Helper function to detect repository line endings
-async function detectRepoLineEndings(cwd) {
-  // In a real implementation, this would check .gitattributes or other files
-  return EOL; // Default to system EOL
-}
-
-// Helper function to write text content with specific encoding and line endings
-function writeTextContent(filePath, content, encoding, lineEndings) {
-  // Normalize line endings
-  const normalizedContent = content.replace(/\r\n|\r|\n/g, lineEndings);
-  writeFileSync(filePath, normalizedContent, { encoding });
-}
-
-// Helper function to generate a diff patch
-function getPatch({ filePath, fileContents, oldStr, newStr }) {
-  // In a real implementation, this would generate a proper diff
-  // For simplicity, we'll return a basic structure
-  return [{
-    oldStart: 1,
-    oldLines: oldStr.split('\n').length,
-    newStart: 1,
-    newLines: newStr.split('\n').length,
-    lines: []
-  }];
-}
-
-// Helper function to add line numbers to content
-function addLineNumbers({ content, startLine }) {
-  const lines = content.split('\n');
-  return lines.map((line, index) => {
-    const lineNumber = startLine + index;
-    return `${lineNumber.toString().padStart(6, ' ')} | ${line}`;
-  }).join('\n');
-}
-
 const handler = async (toolCall) => {
   const { file_path, content } = toolCall.input;
   
   try {
-    // Validate path is absolute
-    if (!isAbsolute(file_path)) {
-      return {
-        error: "Path must be absolute, not relative"
-      };
-    }
+    const fullFilePath = isAbsolute(file_path)
+      ? file_path
+      : resolve(process.cwd(), file_path);
     
-    // Get current working directory
-    const cwd = process.cwd();
-    
-    const fullFilePath = file_path;
     const dir = dirname(fullFilePath);
     const oldFileExists = existsSync(fullFilePath);
     const enc = oldFileExists ? detectFileEncoding(fullFilePath) : 'utf-8';
@@ -113,21 +108,17 @@ const handler = async (toolCall) => {
 
     const endings = oldFileExists
       ? detectLineEndings(fullFilePath)
-      : await detectRepoLineEndings(cwd);
+      : await detectRepoLineEndings(process.cwd());
 
-    // Create directory if it doesn't exist
     mkdirSync(dir, { recursive: true });
-    
-    // Write content to file
     writeTextContent(fullFilePath, content, enc, endings);
 
-    // Prepare result data
-    const MAX_LINES_TO_RENDER_FOR_ASSISTANT = 16000;
-    const TRUNCATED_MESSAGE =
-      '<response clipped><NOTE>To save on context only part of this file has been shown to you. You should retry this tool after you have searched inside the file with Grep in order to find the line numbers of what you are looking for.</NOTE>';
+    // Update read timestamp, to invalidate stale writes
+    if (toolCall.readFileTimestamps) {
+      toolCall.readFileTimestamps[fullFilePath] = statSync(fullFilePath).mtimeMs;
+    }
 
     if (oldContent) {
-      // File was updated
       const patch = getPatch({
         filePath: file_path,
         fileContents: oldContent,
@@ -135,7 +126,45 @@ const handler = async (toolCall) => {
         newStr: content,
       });
 
-      const assistantOutput = `The file ${file_path} has been updated. Here's the result of running \`cat -n\` on a snippet of the edited file:
+      const data = {
+        type: 'update',
+        filePath: file_path,
+        content,
+        structuredPatch: patch,
+      };
+      
+      return {
+        type: 'result',
+        data,
+        resultForAssistant: renderResultForAssistant(data),
+      };
+    }
+
+    const data = {
+      type: 'create',
+      filePath: file_path,
+      content,
+      structuredPatch: [],
+    };
+    
+    return {
+      type: 'result',
+      data,
+      resultForAssistant: renderResultForAssistant(data),
+    };
+  } catch (error) {
+    return {
+      error: `Error writing file: ${error.message}`
+    };
+  }
+};
+
+const renderResultForAssistant = ({ filePath, content, type }) => {
+  switch (type) {
+    case 'create':
+      return `File created successfully at: ${filePath}`;
+    case 'update':
+      return `The file ${filePath} has been updated. Here's the result of running \`cat -n\` on a snippet of the edited file:
 ${addLineNumbers({
   content:
     content.split(/\r?\n/).length > MAX_LINES_TO_RENDER_FOR_ASSISTANT
@@ -146,33 +175,7 @@ ${addLineNumbers({
       : content,
   startLine: 1,
 })}`;
-
-      return {
-        output: `File updated successfully at: ${relative(cwd, fullFilePath)}`,
-        assistantOutput: assistantOutput,
-        type: 'update',
-        filePath: file_path,
-        content,
-        structuredPatch: patch
-      };
-    } else {
-      // File was created
-      const assistantOutput = `File created successfully at: ${file_path}`;
-      
-      return {
-        output: `File created successfully at: ${relative(cwd, fullFilePath)}`,
-        assistantOutput: assistantOutput,
-        type: 'create',
-        filePath: file_path,
-        content,
-        structuredPatch: []
-      };
-    }
-  } catch (error) {
-    return {
-      error: error.message
-    };
   }
 };
 
-export { name, schema, handler, PROMPT, DESCRIPTION }; 
+export { name, schema, handler }; 

@@ -25,9 +25,9 @@ async function getAvailableTools() {
   ]);
   
   return [
-    grepModule.default,
-    globModule.default,
-    lsModule.default
+    grepModule,
+    globModule,
+    lsModule
   ];
 }
 

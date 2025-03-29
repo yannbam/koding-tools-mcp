@@ -248,60 +248,63 @@ const handler = async (toolCall) => {
   let stdout = '';
   let stderr = '';
   
-  try {
-    // Execute command using PersistentShell
-    const result = await PersistentShell.getInstance().exec(
-      command,
-      toolCall.abortController?.signal,
-      timeout
-    );
-    
-    stdout += (result.stdout || '').trim() + '\n';
-    stderr += (result.stderr || '').trim() + '\n';
-    
-    if (result.code !== 0) {
-      stderr += `Exit code ${result.code}`;
-    }
-    
-    // Update read timestamps for any files referenced by the command
-    if (toolCall.readFileTimestamps) {
-      getCommandFilePaths(command, stdout).forEach(filePath => {
-        const fullFilePath = isAbsolute(filePath)
-          ? filePath
-          : resolve(process.cwd(), filePath);
-
-        // Try/catch in case the file doesn't exist
-        try {
-          toolCall.readFileTimestamps[fullFilePath] = statSync(fullFilePath).mtimeMs;
-        } catch (e) {
-          console.error(e);
-        }
-      });
-    }
-    
-    const { totalLines: stdoutLines, truncatedContent: stdoutContent } =
-      formatOutput(stdout.trim());
-    const { totalLines: stderrLines, truncatedContent: stderrContent } =
-      formatOutput(stderr.trim());
-    
-    const data = {
-      stdout: stdoutContent,
-      stdoutLines,
-      stderr: stderrContent,
-      stderrLines,
-      interrupted: result.interrupted || false
-    };
-    
-    return data;
-  } catch (error) {
-    return {
-      stdout: '',
-      stdoutLines: 0,
-      stderr: `Error executing command: ${error.message}`,
-      stderrLines: 1,
-      interrupted: false
-    };
+  const result = await PersistentShell.getInstance().exec(
+    command,
+    toolCall.abortController?.signal,
+    timeout
+  );
+  
+  stdout += (result.stdout || '').trim() + '\n';
+  stderr += (result.stderr || '').trim() + '\n';
+  
+  if (result.code !== 0) {
+    stderr += `Exit code ${result.code}`;
   }
+  
+  // Update read timestamps for any files referenced by the command
+  if (toolCall.readFileTimestamps) {
+    getCommandFilePaths(command, stdout).forEach(filePath => {
+      const fullFilePath = isAbsolute(filePath)
+        ? filePath
+        : resolve(process.cwd(), filePath);
+
+      // Try/catch in case the file doesn't exist
+      try {
+        toolCall.readFileTimestamps[fullFilePath] = statSync(fullFilePath).mtimeMs;
+      } catch (e) {
+        console.error(e);
+      }
+    });
+  }
+  
+  const { totalLines: stdoutLines, truncatedContent: stdoutContent } =
+    formatOutput(stdout.trim());
+  const { totalLines: stderrLines, truncatedContent: stderrContent } =
+    formatOutput(stderr.trim());
+  
+  const data = {
+    stdout: stdoutContent,
+    stdoutLines,
+    stderr: stderrContent,
+    stderrLines,
+    interrupted: result.interrupted || false
+  };
+  
+  return {
+    type: 'result',
+    data,
+    resultForAssistant: renderResultForAssistant(data)
+  };
 };
 
-export { name, schema, handler, formatOutput, getCommandFilePaths };
+const renderResultForAssistant = ({ interrupted, stdout, stderr }) => {
+  let errorMessage = stderr.trim();
+  if (interrupted) {
+    if (stderr) errorMessage += '\n';
+    errorMessage += '<error>Command was aborted before completion</error>';
+  }
+  const hasBoth = stdout.trim() && errorMessage;
+  return `${stdout.trim()}${hasBoth ? '\n' : ''}${errorMessage.trim()}`;
+};
+
+export { name, schema, handler };
