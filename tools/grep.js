@@ -116,7 +116,8 @@ const handler = async (toolCall) => {
     }
     
     return {
-      output
+      type: 'result',
+      resultForAssistant: output
     };
   } catch (error) {
     return {
