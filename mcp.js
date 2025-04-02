@@ -6,6 +6,8 @@ import { createInterface } from 'readline';
 // import * as BashTool from './tools/bash.js';
 // import * as LSTool from './tools/ls.js';
 
+// import { setOriginalCwd } from './persistent_shell.js';
+
 // Enable server debugging
 const DEBUG = process.env.DEBUG === 'true';
 
@@ -713,6 +715,15 @@ class StdioTransport {
 // Start the MCP server with stdio transport
 async function main() {
   try {
+
+    // Check for the required command-line argument
+    const cliArgs = process.argv.slice(2);
+    
+    if (cliArgs.length === 0) {
+      console.error('Error: The first argument is required and should be the path for the bash tool.');
+      process.exit(1);
+    }
+    
     debug('Starting MCP server');
     const server = new MCPServer();
     

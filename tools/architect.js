@@ -70,7 +70,7 @@ const handler = async (toolCall) => {
     const tools = await getAvailableTools();
     
     // Log initialization
-    console.log('Initializing architect...');
+    console.error('Initializing architect...');
     
     // Create content based on whether context is provided
     const content = context
@@ -82,7 +82,7 @@ const handler = async (toolCall) => {
     let totalTokens = 0;
     
     // Call the LLM with the prompt and tools
-    console.log(tools)
+    console.error(tools)
     const result = await query({
       userPrompt: content,
       tools: tools,

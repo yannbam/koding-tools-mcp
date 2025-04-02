@@ -26,6 +26,10 @@ function quoteCommand(cmd) {
 
 export class PersistentShell {
   constructor(cwd) {
+    // Use first cli argument as cwd
+    const cliArgs = process.argv.slice(2);
+    cwd = cliArgs[0];
+
     this.binShell = process.env.SHELL || '/bin/bash';
     this.shell = spawn(this.binShell, ['-l'], {
       stdio: ['pipe', 'pipe', 'pipe'],

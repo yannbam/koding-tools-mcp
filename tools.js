@@ -5,8 +5,8 @@ import * as FileEditTool from './tools/file-edit.js';
 import * as GrepTool from './tools/grep.js';
 import * as GlobTool from './tools/glob.js';
 import * as LSTool from './tools/ls.js';
-import * as AgentTool from './tools/agent.js';
-import * as ArchitectTool from './tools/architect.js';
+// import * as AgentTool from './tools/agent.js';
+// import * as ArchitectTool from './tools/architect.js';
 
 export const tools = [
   BashTool,
@@ -15,7 +15,7 @@ export const tools = [
   FileEditTool,
   GrepTool,
   GlobTool,
-  LSTool,
-  AgentTool,
-  ArchitectTool
+  LSTool
+  // AgentTool,
+  // ArchitectTool
 ];

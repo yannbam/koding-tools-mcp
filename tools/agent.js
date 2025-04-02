@@ -56,7 +56,7 @@ const handler = async (toolCall) => {
     const tools = await getAvailableTools();
     
     // Log initialization
-    console.log('Initializing agent...');
+    console.error('Initializing agent...');
     
     // Create system prompt for the agent
     const systemPrompt = `You are a helpful assistant with access to various tools. 
