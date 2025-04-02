@@ -14,6 +14,9 @@
   "bin": {
     "mcp-example": "./example.js"
   },
+  "dependencies": {
+    "glob": "^11.0.1"
+  },
   "keywords": [
     "MCP",
     "AI",

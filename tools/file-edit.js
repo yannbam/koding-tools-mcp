@@ -263,9 +263,12 @@ const handler = async (toolCall) => {
       writeTextContent(fullFilePath, new_string, 'utf8', 'LF');
       
       return {
-        type: 'created',
-        filePath: file_path,
-        message: `Created new file: ${file_path}`
+        type: 'result',
+        data: {
+          type: 'create',
+          filePath: fullFilePath
+        },
+        resultForAssistant: `Successfully created new file: ${fullFilePath}`
       };
     }
 
@@ -305,14 +308,28 @@ const handler = async (toolCall) => {
     // Get a snippet of the edited file for the response
     const { snippet, startLine } = getSnippet(originalFile, old_string, new_string);
     
+    // return {
+    //   type: 'result',
+    //   data 
+    //   filePath: file_path,
+    //   patch: patch,
+    //   snippet: addLineNumbers({
+    //     content: snippet,
+    //     startLine,
+    //   })
+    // };
     return {
-      type: 'edited',
-      filePath: file_path,
-      patch: patch,
-      snippet: addLineNumbers({
+      type: 'result',
+      data: {
+        type: 'edit',
+        filePath: fullFilePath,
+        patch: patch,
+        snippet: snippet
+      },
+      resultForAssistant: `Successfully edited file: ${fullFilePath}\n\nHere's the result of running \`cat -n\` on a snippet of the edited file:\n${addLineNumbers({
         content: snippet,
         startLine,
-      })
+      })}`
     };
   } catch (error) {
     return {
