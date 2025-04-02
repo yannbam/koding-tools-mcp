@@ -130,8 +130,9 @@ const handler = async (toolCall) => {
     }
     
     return {
-      output,
-      data: outputObj
+      type: 'result',
+      outputObj,
+      resultForAssistant: output
     };
   } catch (error) {
     return {
