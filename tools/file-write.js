@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, statSync } from 'fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync, statSync } from 'fs';
 import { EOL } from 'os';
 import { dirname, extname, isAbsolute, relative, resolve } from 'path';
 
@@ -35,7 +35,7 @@ function writeTextContent(filePath, content, encoding, lineEndings) {
   // Replace line endings and write file
   const normalizedContent = content.replace(/\r\n|\r|\n/g, lineEndings);
   mkdirSync(dirname(filePath), { recursive: true });
-  require('fs').writeFileSync(filePath, normalizedContent, encoding);
+  writeFileSync(filePath, normalizedContent, encoding);
 }
 
 function getPatch({ filePath, fileContents, oldStr, newStr }) {
