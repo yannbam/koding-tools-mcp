@@ -1,4 +1,4 @@
-import { exec } from 'child_process';
+import { glob } from 'glob';
 
 const name = 'GlobTool';
 
@@ -6,7 +6,7 @@ const DESCRIPTION = `
 - Fast file search tool that works with any codebase size
 - Finds files by name pattern using glob syntax
 - Supports full glob syntax (eg. "*.js", "**/*.{ts,tsx}", "src/**/*.test.js")
-- Exclude files with the exclude parameter (eg. "node_modules/**")
+- Exclude files with the exclude parameter (eg. ["node_modules/**", "dist/**"])
 - Returns matching file paths sorted by modification time
 - Use this tool when you need to find files by name pattern
 - When you are doing an open ended search that may require multiple rounds of globbing and grepping, use the Agent tool instead
@@ -22,16 +22,18 @@ const schema = {
     type: "object",
     properties: {
       pattern: {
-        type: "string",
-        description: "The glob pattern to search for files (e.g. \"*.js\", \"**/*.{ts,tsx}\")"
+        type: "array",
+        items: { type: "string" },
+        description: "The glob patterns to search for files (e.g. [\"**/*.ts\", \"**/*.tsx\"])"
       },
       path: {
         type: "string",
         description: "The directory to search in. Defaults to the current working directory."
       },
       exclude: {
-        type: "string",
-        description: "Glob pattern to exclude from the search (e.g. \"node_modules/**\")"
+        type: "array",
+        items: { type: "string" },
+        description: "Glob patterns to exclude from the search (e.g. [\"node_modules/**\", \"dist/**\"])"
       }
     },
     required: ["pattern"]
@@ -40,81 +42,45 @@ const schema = {
 
 const handler = async (toolCall) => {
   const { pattern, path = '.', exclude } = toolCall.input;
-  let stdout = '';
-  let stderr = '';
+  const start = Date.now();
   
   try {
-    // Build find command with glob pattern
-    // Using find with -name for simple patterns, could use fd or other tools for more complex patterns
-    let command = `find "${path}" -type f -path "${pattern}" | sort`;
+    // Configure glob options
+    const options = {
+      cwd: path,
+      nocase: true,
+      nodir: true,
+      stat: true,        // Enable stat to get modification time
+      withFileTypes: true // Return file objects with stats
+    };
     
-    if (exclude) {
-      command += ` | grep -v "${exclude}"`;
+    // Add exclude pattern(s) if provided
+    if (exclude && exclude.length > 0) {
+      options.ignore = exclude;
     }
     
-    command += ` | head -n ${MAX_RESULTS + 1}`;
+    // Execute glob search
+    const paths = await glob(pattern, options);
     
-    // Execute command
-    const result = await new Promise((resolve, reject) => {
-      const childProcess = exec(command, {
-        maxBuffer: 10 * 1024 * 1024, // 10MB buffer
-      });
-      
-      let stdoutData = '';
-      let stderrData = '';
-      
-      childProcess.stdout.on('data', (data) => {
-        stdoutData += data;
-      });
-      
-      childProcess.stderr.on('data', (data) => {
-        stderrData += data;
-      });
-      
-      childProcess.on('close', (code) => {
-        resolve({
-          stdout: stdoutData,
-          stderr: stderrData,
-          code
-        });
-      });
-      
-      childProcess.on('error', (err) => {
-        reject(err);
-      });
-    });
+    // Sort by modification time
+    const sortedPaths = paths.sort((a, b) => (a.mtimeMs ?? 0) - (b.mtimeMs ?? 0));
     
-    stdout = (result.stdout || '').trim();
-    stderr = (result.stderr || '').trim();
-    
-    if (result.code !== 0 && stderr) {
-      return {
-        error: stderr
-      };
-    }
-    
-    // Process results
-    const files = stdout.split('\n').filter(Boolean);
-    const numFiles = files.length;
-    
-    // Sort files by modification time (would need fs.stat in a real implementation)
-    // For simplicity, we'll just return them as is
-    
-    // Truncate if too many results
-    const truncatedFiles = files.slice(0, MAX_RESULTS);
-    const isTruncated = numFiles > MAX_RESULTS;
+    // Limit results and check for truncation
+    const truncated = sortedPaths.length > MAX_RESULTS;
+    const truncatedFiles = sortedPaths.slice(0, MAX_RESULTS).map(path => path.fullpath());
+    const numFiles = truncatedFiles.length;
     
     // Format output
     let output = `Found ${numFiles} file${numFiles === 1 ? '' : 's'}\n`;
     if (numFiles > 0) {
       output += truncatedFiles.join('\n');
-      if (isTruncated) {
+      if (truncated) {
         output += '\n(Results are truncated. Consider using a more specific pattern.)';
       }
     }
     
-    // Calculate duration (in a real implementation, we'd track actual time)
-    const durationMs = 100; // Placeholder
+    // Calculate duration
+    const durationMs = Date.now() - start;
     
     // Prepare output object
     const outputObj = {
@@ -141,4 +107,4 @@ const handler = async (toolCall) => {
   }
 };
 
-export { name, schema, handler }; 
+export { name, schema, handler };
