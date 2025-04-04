@@ -76,14 +76,15 @@ function addLineNumbers({ content, startLine }) {
 
 const schema = {
   name: name,
-  description: `Write a file to the local filesystem. Overwrites the existing file if there is one.
+  description: `Write a file to the local filesystem. Overwrites the existing file if there is one!
 
 Before using this tool:
 
-1. Use the ReadFile tool to understand the file's contents and context
+1. Use the ReadFileTool to understand the file's contents and context
 2. Directory Verification (only applicable when creating new files):
-   - Use the LS tool to verify the parent directory exists and is the correct location
-3. Avoid rewriting a whole file if you are making edits. Use the FileEditTool instead for more efficiency.`,
+   - Use the LSTool to verify the parent directory exists and is the correct location
+3. Avoid rewriting a whole file if you are making edits. Use the FileEditTool instead for more efficiency.
+4. Avoid overwriting existing files as this may cause irreversible data loss. If overwriting an existing is necessary, you MUST first read the **whole** file using FileReadTool, so you can recover the old content.`,
   parameters: {
     type: "object",
     properties: {
