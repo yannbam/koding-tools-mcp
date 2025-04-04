@@ -250,6 +250,26 @@ const handler = async (toolCall) => {
   let stdout = '';
   let stderr = '';
   
+  // Check for banned commands
+  const bannedCmd = BANNED_COMMANDS.find(cmd => {
+    const regex = new RegExp(`\\b${cmd}\\b`);
+    return regex.test(command);
+  });
+  
+  if (bannedCmd) {
+    return {
+      type: 'result',
+      data: {
+        stdout: '',
+        stdoutLines: 0,
+        stderr: `Error: The command contains banned command: ${bannedCmd}.\nAll banned commands: ${BANNED_COMMANDS.join(', ')}`,
+        stderrLines: 2,
+        interrupted: false
+      },
+      resultForAssistant: `Error: The command contains banned command: ${bannedCmd}.\nAll banned commands: ${BANNED_COMMANDS.join(', ')}`
+    };
+  }
+      
   const result = await PersistentShell.getInstance().exec(
     command,
     toolCall.abortController?.signal,
