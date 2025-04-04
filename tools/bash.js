@@ -11,9 +11,6 @@ import { statSync } from 'fs';
 
 const name = "BashTool";
 const BANNED_COMMANDS = [
-  'alias',
-  'curl',
-  'curlie',
   'wget',
   'axel',
   'aria2c',
@@ -28,6 +25,8 @@ const BANNED_COMMANDS = [
   'chrome',
   'firefox',
   'safari',
+  'rm',
+  'trash-empty'
 ]
 
 const MAX_OUTPUT_LENGTH = 30000
@@ -48,6 +47,7 @@ Before executing the command, please follow these steps:
 3. Command Execution:
    - After ensuring proper quoting, execute the command.
    - Capture the output of the command.
+   - You must always recite your exact command for the user to see before making the tool call!
 
 4. Output Processing:
    - If the output exceeds ${MAX_OUTPUT_LENGTH} characters, output will be truncated before being returned to you.
@@ -62,6 +62,8 @@ Usage notes:
   - You can specify an optional timeout in milliseconds (up to 600000ms / 10 minutes). If not specified, commands will timeout after 30 minutes.
   - VERY IMPORTANT: You MUST avoid using search commands like \`find\` and \`grep\`. Instead use ${GrepTool.name}, ${GlobTool.name}, or ${AgentTool.name} to search. You MUST avoid read tools like \`cat\`, \`head\`, \`tail\`, and \`ls\`, and use ${FileReadTool.name} and ${LSTool.name} to read files.
   - When issuing multiple commands, use the ';' or '&&' operator to separate them. DO NOT use newlines (newlines are ok in quoted strings).
+  - You are not allowed to use the 'rm' command. Use 'trash-put', 'trash-restore' and 'trash-list' instead.
+  - IMPORTANT: At the beginning of each conversation use 'cd' to enter the project directory and stay there! (if no directory is given, create a **new** working directory in /tmp/ instead)
   - IMPORTANT: All commands share the same shell session. Shell state (environment variables, virtual environments, current directory, etc.) persist between commands. For example, if you set an environment variable as part of a command, the environment variable will persist for subsequent commands.
   - Try to maintain your current working directory throughout the session by using absolute paths and avoiding usage of \`cd\`. You may use \`cd\` if the User explicitly requests it.
   <good-example>
