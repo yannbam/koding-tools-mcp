@@ -161,7 +161,7 @@ const renderResultForAssistant = (data) => {
         },
       ];
     case 'text':
-      return addLineNumbers(data.file.content, data.file.startLine);
+      return `Showing ${data.file.numLines} of ${data.file.totalLines} lines total:\n\n` + addLineNumbers(data.file.content, data.file.startLine);
   }
 };
 
