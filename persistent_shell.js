@@ -28,7 +28,7 @@ export class PersistentShell {
   constructor(cwd) {
     // Use first cli argument as cwd
     const cliArgs = process.argv.slice(2);
-    cwd = cliArgs[0];
+    cwd = cliArgs[0] || '/tmp';
 
     this.binShell = process.env.SHELL || '/bin/bash';
     this.shell = spawn(this.binShell, ['-l'], {

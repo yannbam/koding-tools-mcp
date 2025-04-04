@@ -717,12 +717,13 @@ async function main() {
   try {
 
     // Check for the required command-line argument
-    const cliArgs = process.argv.slice(2);
+    // cwd arg is no longer required (default=/tmp)
+    // const cliArgs = process.argv.slice(2);
     
-    if (cliArgs.length === 0) {
-      console.error('Error: The first argument is required and should be the path for the bash tool.');
-      process.exit(1);
-    }
+    // if (cliArgs.length === 0) {
+    //   console.error('Error: The first argument is required and should be the path for the bash tool.');
+    //   process.exit(1);
+    // }
     
     debug('Starting MCP server');
     const server = new MCPServer();
