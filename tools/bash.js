@@ -316,16 +316,18 @@ const handler = async (toolCall) => {
   const bannedCmd = checkForBannedCommands(command);
   
   if (bannedCmd) {
+    const data = {
+      stdout: '',
+      stdoutLines: 0,
+      stderr: `Error: The command contains banned command: ${bannedCmd}.\nAll banned commands: ${BANNED_COMMANDS.join(', ')}`,
+      stderrLines: 2,
+      interrupted: false
+    };
+    
     return {
       type: 'result',
-      data: {
-        stdout: '',
-        stdoutLines: 0,
-        stderr: `Error: The command contains banned command: ${bannedCmd}.\nAll banned commands: ${BANNED_COMMANDS.join(', ')}`,
-        stderrLines: 2,
-        interrupted: false
-      },
-      resultForAssistant: `Error: The command contains banned command: ${bannedCmd}.\nAll banned commands: ${BANNED_COMMANDS.join(', ')}`
+      data,
+      resultForAssistant: renderResultForAssistant(data)
     };
   }
 
@@ -379,13 +381,26 @@ const handler = async (toolCall) => {
 };
 
 const renderResultForAssistant = ({ interrupted, stdout, stderr }) => {
+  // Get the current working directory
+  const cwd = PersistentShell.getInstance().pwd();
+  
   let errorMessage = stderr.trim();
+  let prefix = '';
+  
+  // Determine the prefix based on whether there's an error
+  if (stderr.trim() || interrupted) {
+    prefix = `Tried to execute command in ${cwd}\n\n`;
+  } else {
+    prefix = `Command executed in ${cwd}\n\n`;
+  }
+  
   if (interrupted) {
     if (stderr) errorMessage += '\n';
-    errorMessage += '<error>Command was aborted before completion</error>';
+    errorMessage += '<e>Command was aborted before completion</e>';
   }
+  
   const hasBoth = stdout.trim() && errorMessage;
-  return `${stdout.trim()}${hasBoth ? '\n' : ''}${errorMessage.trim()}`;
+  return `${prefix}${stdout.trim()}${hasBoth ? '\n' : ''}${errorMessage.trim()}`;
 };
 
 export { name, schema, handler };
