@@ -29,12 +29,8 @@ const BANNED_COMMANDS = [
   'trash-empty'
 ]
 
-// Whitelist patterns for commands that would otherwise be banned
-// Key is the banned command, value is the regex pattern for allowed usage
-const WHITELISTED_COMMAND_PATTERNS = {
-  'rm': /\bgit\s+rm\b/g,  // Added global flag to replace all occurrences
-  // Add other whitelist patterns here as needed
-}
+// Note: Whitelist patterns are no longer needed with our generalized algorithm
+// The algorithm detects commands in execution positions vs. arguments automatically
 
 const MAX_OUTPUT_LENGTH = 30000
 const MAX_RENDERED_LINES = 50
@@ -257,28 +253,67 @@ const handler = async (toolCall) => {
   let stdout = '';
   let stderr = '';
   
-  // Check for banned commands
-  const bannedCmd = BANNED_COMMANDS.find(cmd => {
-    // First check if the command contains the banned command
-    const regex = new RegExp(`\\b${cmd}\\b`);
-    if (!regex.test(command)) {
-      return false; // Command doesn't contain this banned command
+  // Check for banned commands - generalized elegant solution
+  const checkForBannedCommands = (command) => {
+    // Split command into segments by common separators (;, &&, ||, |)
+    const segments = command.split(/\s*(?:;|&&|\|\||\|)\s*/);
+    
+    // For each segment, extract the actual command (first word)
+    // and check if it's banned
+    for (const segment of segments) {
+      const trimmed = segment.trim();
+      if (!trimmed) continue;
+      
+      // Skip echo commands with quotes or redirection (very common safe case)
+      if (/^\s*(?:echo|printf|cat)\s+['"`]/.test(trimmed) || 
+          /^\s*(?:echo|printf|cat).*?>[^;]*$/.test(trimmed)) {
+        continue; // Safe echo command
+      }
+      
+      // Extract the first word (the actual command)
+      const firstWord = trimmed.split(/\s+/)[0];
+      
+      // Check if the first word is a banned command
+      if (BANNED_COMMANDS.includes(firstWord) || 
+          BANNED_COMMANDS.some(banned => firstWord.endsWith(`/${banned}`))) {
+        // It's a banned command or a path to banned command
+        return firstWord.includes('/') ? 
+          firstWord.split('/').pop() : firstWord;
+      }
+      
+      // Special case: command execution contexts where banned commands
+      // can appear in non-first positions
+      for (const banned of BANNED_COMMANDS) {
+        // Check common execution wrappers
+        const wrapperPatterns = [
+          // Command wrappers followed by banned command
+          new RegExp(`\\b(?:sudo|time|nice|env)\\s+.*?\\b${banned}\\b`),
+          // Find -exec or xargs followed by banned command
+          new RegExp(`-exec\\s+.*?\\b${banned}\\b`),
+          new RegExp(`\\bxargs\\s+.*?\\b${banned}\\b`),
+          // Shell execution with banned command
+          new RegExp(`\\b(?:bash|sh)\\s+-c\\s+['"\`]([^'"\`]*?)\\b${banned}\\b`),
+          // Command substitution with banned command
+          new RegExp(`\\$\\(\\s*${banned}\\b`),
+          // Eval execution
+          new RegExp(`\\beval\\s+['"\`].*?\\b${banned}\\b`)
+        ];
+        
+        // Check if any wrapper pattern matches and this isn't in an echo-like command
+        if (wrapperPatterns.some(pattern => pattern.test(trimmed)) && 
+            !trimmed.startsWith('echo') && 
+            !trimmed.startsWith('printf') && 
+            !trimmed.startsWith('cat')) {
+          return banned;
+        }
+      }
     }
     
-    // Command contains banned word, check if it's in a whitelisted pattern
-    const whitelistPattern = WHITELISTED_COMMAND_PATTERNS[cmd];
-    if (!whitelistPattern) {
-      return true; // No whitelist for this command, so it's banned
-    }
-    
-    // Replace all whitelisted occurrences with a placeholder
-    let sanitizedCommand = command;
-    const placeholder = 'WHITELISTED_PLACEHOLDER';
-    sanitizedCommand = sanitizedCommand.replace(whitelistPattern, placeholder);
-    
-    // Check if the banned command still exists elsewhere in the command
-    return regex.test(sanitizedCommand);
-  });
+    return null; // No banned commands detected
+  };
+  
+  // Execute the check using our elegant algorithm
+  const bannedCmd = checkForBannedCommands(command);
   
   if (bannedCmd) {
     return {
