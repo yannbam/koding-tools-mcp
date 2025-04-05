@@ -47,7 +47,7 @@ Before executing the command, please follow these steps:
 3. Command Execution:
    - After ensuring proper quoting, execute the command.
    - Capture the output of the command.
-   - You must always recite your exact command for the user to see before making the tool call!
+   - You MUST always recite your exact command for the user to see before making the tool call! This rule only applies to the BashTool specifically.
 
 4. Output Processing:
    - If the output exceeds ${MAX_OUTPUT_LENGTH} characters, output will be truncated before being returned to you.
@@ -269,7 +269,7 @@ const handler = async (toolCall) => {
       resultForAssistant: `Error: The command contains banned command: ${bannedCmd}.\nAll banned commands: ${BANNED_COMMANDS.join(', ')}`
     };
   }
-      
+
   const result = await PersistentShell.getInstance().exec(
     command,
     toolCall.abortController?.signal,
