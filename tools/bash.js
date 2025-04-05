@@ -29,6 +29,13 @@ const BANNED_COMMANDS = [
   'trash-empty'
 ]
 
+// Whitelist patterns for commands that would otherwise be banned
+// Key is the banned command, value is the regex pattern for allowed usage
+const WHITELISTED_COMMAND_PATTERNS = {
+  'rm': /\bgit\s+rm\b/g,  // Added global flag to replace all occurrences
+  // Add other whitelist patterns here as needed
+}
+
 const MAX_OUTPUT_LENGTH = 30000
 const MAX_RENDERED_LINES = 50
 
@@ -252,8 +259,25 @@ const handler = async (toolCall) => {
   
   // Check for banned commands
   const bannedCmd = BANNED_COMMANDS.find(cmd => {
+    // First check if the command contains the banned command
     const regex = new RegExp(`\\b${cmd}\\b`);
-    return regex.test(command);
+    if (!regex.test(command)) {
+      return false; // Command doesn't contain this banned command
+    }
+    
+    // Command contains banned word, check if it's in a whitelisted pattern
+    const whitelistPattern = WHITELISTED_COMMAND_PATTERNS[cmd];
+    if (!whitelistPattern) {
+      return true; // No whitelist for this command, so it's banned
+    }
+    
+    // Replace all whitelisted occurrences with a placeholder
+    let sanitizedCommand = command;
+    const placeholder = 'WHITELISTED_PLACEHOLDER';
+    sanitizedCommand = sanitizedCommand.replace(whitelistPattern, placeholder);
+    
+    // Check if the banned command still exists elsewhere in the command
+    return regex.test(sanitizedCommand);
   });
   
   if (bannedCmd) {
