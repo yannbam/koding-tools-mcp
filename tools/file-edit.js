@@ -326,7 +326,7 @@ const handler = async (toolCall) => {
         patch: patch,
         snippet: snippet
       },
-      resultForAssistant: `Successfully edited file: ${fullFilePath}\n\nHere's the result of running \`cat -n\` on a snippet of the edited file:\n${addLineNumbers({
+      resultForAssistant: `[Successfully edited file: ${fullFilePath}\nHere's the result of running \`cat -n\` on a snippet of the edited file]\n\n${addLineNumbers({
         content: snippet,
         startLine,
       })}`
