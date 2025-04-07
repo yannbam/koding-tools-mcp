@@ -3,16 +3,16 @@ import { exec } from 'child_process';
 const name = 'GrepTool';
 
 const DESCRIPTION = `
+ripgreg (rg) command for sophisticated content search in files
+
 - Fast content search tool that works with any codebase size
 - Searches file contents using regular expressions
 - Supports full regex syntax (eg. "log.*Error", "function\\s+\\w+", etc.)
 - Filter files by pattern with the include parameter (eg. "*.js", "*.{ts,tsx}")
-- Returns matching file paths sorted by modification time
 - Use this tool when you need to find files containing specific patterns
-- When you are doing an open ended search that may require multiple rounds of globbing and grepping, use the Agent tool instead
 `;
 
-const MAX_RESULTS = 100;
+const MAX_LINES = 100;
 const MAX_OUTPUT_LENGTH = 30000;
 
 const schema = {
@@ -25,31 +25,53 @@ const schema = {
         type: "string",
         description: "The regular expression pattern to search for in file contents"
       },
-      path: {
+      baseDir: {
         type: "string",
-        description: "The directory to search in. Defaults to the current working directory."
+        description: "cd to this directory before running rg to reduce output redundancy in absolute filepaths"
+      },
+      paths: {
+        type: "string",
+        description: "The directories and files to search in. Directories are searched recursively"
       },
       include: {
         type: "string",
-        description: "File pattern to include in the search (e.g. \"*.js\", \"*.{ts,tsx}\")"
+        description: "Only include filenames that match this glob pattern (e.g. \"*.js\", \"*.{ts,tsx}\")"
+      },
+      args: {
+        type: "string",
+        description: "commandline arguments for rg (default: -ni)"
       }
     },
-    required: ["pattern"]
+    required: ["pattern","baseDir"]
   }
 };
 
 const handler = async (toolCall) => {
-  const { pattern, path = '.', include } = toolCall.input;
+  const { pattern, baseDir, paths = '.', include, args = '-ni' } = toolCall.input;
   let stdout = '';
   let stderr = '';
   
   try {
     // Build ripgrep command
-    let command = `rg -li "${pattern}" ${path}`;
+    // let command = `cd ${path} && rg ${args} "${pattern}" .`;
+    // if (include) {
+    //   command += ` --glob "${include}"`;
+    // }
+    
+    // Build ripgrep command
+    let command = '';
+
+    if (baseDir) {
+      command = `cd ${baseDir} && `;
+    } 
+    command += `rg ${args} "${pattern}" ${paths}`;
     if (include) {
       command += ` --glob "${include}"`;
     }
     
+    // prepend cmd line to output
+    let output = `[Executed \"${command}\"]\n\n`;
+
     // Execute command
     const result = await new Promise((resolve, reject) => {
       const childProcess = exec(command, {
@@ -83,31 +105,33 @@ const handler = async (toolCall) => {
     stdout = (result.stdout || '').trim();
     stderr = (result.stderr || '').trim();
     
-    if (result.code !== 0 && stderr) {
-      return {
-        error: stderr
-      };
-    }
+    // if (result.code !== 0) {
+    //   return {
+    //     error: output + stderr
+    //   };
+    // }
     
+
     // Process results
-    const files = stdout.split('\n').filter(Boolean);
-    const numFiles = files.length;
+    const lines = stdout.split('\n').filter(Boolean);
+    const numLines = lines.length;
     
     // Sort files by modification time (would need fs.stat in a real implementation)
     // For simplicity, we'll just return them as is
     
     // Truncate if too many results
-    const truncatedFiles = files.slice(0, MAX_RESULTS);
-    const isTruncated = numFiles > MAX_RESULTS;
+    const truncatedLines = lines.slice(0, MAX_LINES);
+    const isTruncated = numLines > MAX_LINES;
     
     // Format output
-    let output = `Found ${numFiles} file${numFiles === 1 ? '' : 's'}\n`;
-    if (numFiles > 0) {
-      output += truncatedFiles.join('\n');
+    // let output = `[Executed ${command}\nFound ${numLines} file${numLines === 1 ? '' : 's'}\n`;
+    if (numLines > 0) {
+      output += truncatedLines.join('\n');
       if (isTruncated) {
         output += '\n(Results are truncated. Consider using a more specific path or pattern.)';
       }
     }
+    
     
     // Truncate if too long
     if (output.length > MAX_OUTPUT_LENGTH) {
@@ -115,6 +139,14 @@ const handler = async (toolCall) => {
         '\n... (output truncated due to length)';
     }
     
+    // Add stderr if there were errors, but still return output
+    if (result.code !== 0) {
+      return {
+        error: output += '\n\n' + stderr
+      };
+    }
+
+
     return {
       type: 'result',
       resultForAssistant: output
