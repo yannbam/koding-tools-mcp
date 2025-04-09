@@ -31,7 +31,7 @@ const schema = {
       },
       paths: {
         type: "string",
-        description: "The directories and files to search in. Directories are searched recursively"
+        description: "Relative paths with respect to baseDir. These are the directories and files to search in. Directories are searched recursively"
       },
       include: {
         type: "string",
