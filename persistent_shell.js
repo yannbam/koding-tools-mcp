@@ -89,6 +89,7 @@ export class PersistentShell {
         this.sendToShell(`source ${configFilePath}`);
       }
     }
+    this.sendToShell(`export PAGER=cat`);      // prevent interactive pager
   }
 
   static instance = null;
