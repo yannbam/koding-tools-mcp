@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync, statSync } from 'fs';
 import { EOL } from 'os';
 import { dirname, extname, isAbsolute, relative, resolve } from 'path';
+import { PersistentShell } from '../persistent_shell.js';
 
 const MAX_LINES_TO_RENDER = 10;
 const MAX_LINES_TO_RENDER_FOR_ASSISTANT = 16000;
@@ -120,6 +121,30 @@ const handler = async (toolCall) => {
 
     mkdirSync(dir, { recursive: true });
     writeTextContent(fullFilePath, content, enc, endings);
+
+    // nb HACK: run nb_git_checkpoint only if file is in nb's root directory
+    const command = `
+      nb_root="\${NB_DIR:-\${HOME}/.nb}"
+      nb_root=$(realpath "$nb_root" 2>/dev/null || echo "$nb_root")
+      if [[ "${fullFilePath}" == "$nb_root"/* ]]; then
+        /usr/local/bin/nb_git_checkpoint ${fullFilePath}
+      fi
+    `
+    try {
+      const result = await PersistentShell.getInstance().exec(
+        command,
+        toolCall.abortController?.signal,
+        120000
+      );
+      
+      if (result.code !== 0) {
+        console.error(`nb_git_checkpoint failed with exit code ${result.code}: ${result.stderr}`);
+        // Continue execution despite the error - don't fail the write
+      }
+    } catch (error) {
+      console.error(`Error executing nb_git_checkpoint: ${error.message}`);
+      // Continue execution despite the error - don't fail the write
+    }
 
     // Update read timestamp, to invalidate stale writes
     if (toolCall.readFileTimestamps) {

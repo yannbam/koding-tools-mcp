@@ -37,6 +37,7 @@ export class PersistentShell {
       env: {
         ...process.env,
         GIT_EDITOR: 'true',
+        TERM: 'dumb'
       },
     });
 

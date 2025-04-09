@@ -2,6 +2,8 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync, statSync } from 'fs
 import * as path from 'path';
 import { dirname, isAbsolute, resolve } from 'path';
 
+import { PersistentShell } from '../persistent_shell.js';
+
 const name = "FileEditTool";
 
 export const DESCRIPTION = `This is a tool for editing files. For moving or renaming files, you should generally use the Bash tool with the 'mv' command instead. For larger edits, use the Write tool to overwrite files. For Jupyter notebooks (.ipynb files), use the NotebookEditTool instead.
@@ -308,6 +310,32 @@ const handler = async (toolCall) => {
     // Get a snippet of the edited file for the response
     const { snippet, startLine } = getSnippet(originalFile, old_string, new_string);
     
+    // nb HACK: run nb_git_checkpoint only if file is in nb's root directory
+    
+    const command = `
+      nb_root="\${NB_DIR:-\${HOME}/.nb}"
+      nb_root=$(realpath "$nb_root" 2>/dev/null || echo "$nb_root")
+      if [[ "${fullFilePath}" == "$nb_root"/* ]]; then
+        /usr/local/bin/nb_git_checkpoint ${fullFilePath}
+      fi
+    `
+    try {
+      const result = await PersistentShell.getInstance().exec(
+        command,
+        toolCall.abortController?.signal,
+        120000
+      );
+      
+      if (result.code !== 0) {
+        console.error(`nb_git_checkpoint failed with exit code ${result.code}: ${result.stderr}`);
+        // Continue execution despite the error - don't fail the edit
+      }
+    } catch (error) {
+      console.error(`Error executing nb_git_checkpoint: ${error.message}`);
+      // Continue execution despite the error - don't fail the edit
+    }
+
+
     // return {
     //   type: 'result',
     //   data 
