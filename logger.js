@@ -1,7 +1,7 @@
 import fs from 'fs';
 
 const LOG_FILE = '/tmp/koding-tools.log';
-const SEPARATOR = '\n————————————————————————————————————\n';
+const SEPARATOR = '\n————————————————————————————————————————————————————————————————————————\n';
 
 /**
  * Log final MCP formatted result to the log file
@@ -13,9 +13,9 @@ export function logFinalResult(toolName, input, mcpResult) {
   const timestamp = new Date().toISOString();
   const logEntry = [
     `Timestamp: ${timestamp}`,
-    `Tool: ${toolName} (MCP Final Response)`,
+    `Tool: ${toolName}`,
     `Input: ${JSON.stringify(input, null, 2)}`,
-    `\nMCP Result: ${JSON.stringify(mcpResult, null, 2)}`,
+    `\nResult: ${JSON.stringify(mcpResult, null, 2)}`,
     SEPARATOR
   ].join('\n');
   
