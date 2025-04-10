@@ -159,35 +159,44 @@ const handler = async (toolCall) => {
         newStr: content,
       });
 
-      const data = {
-        type: 'update',
-        filePath: file_path,
-        content,
-        structuredPatch: patch,
-      };
+      // Use the existing renderResultForAssistant function for formatting
+      const message = `The file ${filePath} has been updated. Here's the result of running \`cat -n\` on a snippet of the edited file:
+${addLineNumbers({
+  content:
+    content.split(/\r?\n/).length > MAX_LINES_TO_RENDER_FOR_ASSISTANT
+      ? content
+          .split(/\r?\n/)
+          .slice(0, MAX_LINES_TO_RENDER_FOR_ASSISTANT)
+          .join('\n') + TRUNCATED_MESSAGE
+      : content,
+  startLine: 1,
+})}`;
       
       return {
-        type: 'result',
-        data,
-        resultForAssistant: renderResultForAssistant(data),
+        content: [{ 
+          type: "text", 
+          text: message 
+        }],
+        isError: false
       };
     }
 
-    const data = {
-      type: 'create',
-      filePath: file_path,
-      content,
-      structuredPatch: [],
-    };
+    const message = `File created successfully at: ${file_path}`;
     
     return {
-      type: 'result',
-      data,
-      resultForAssistant: renderResultForAssistant(data),
+      content: [{ 
+        type: "text", 
+        text: message 
+      }],
+      isError: false
     };
   } catch (error) {
     return {
-      error: `Error writing file: ${error.message}`
+      content: [{ 
+        type: "text", 
+        text: `Error writing file: ${error.message}` 
+      }],
+      isError: true
     };
   }
 };

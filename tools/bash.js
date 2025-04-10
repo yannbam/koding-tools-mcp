@@ -316,18 +316,14 @@ const handler = async (toolCall) => {
   const bannedCmd = checkForBannedCommands(command);
   
   if (bannedCmd) {
-    const data = {
-      stdout: '',
-      stdoutLines: 0,
-      stderr: `Error: The command contains banned command: ${bannedCmd}.\nAll banned commands: ${BANNED_COMMANDS.join(', ')}`,
-      stderrLines: 2,
-      interrupted: false
-    };
+    const errorMessage = `Error: The command contains banned command: ${bannedCmd}.\nAll banned commands: ${BANNED_COMMANDS.join(', ')}`;
     
     return {
-      type: 'result',
-      data,
-      resultForAssistant: renderResultForAssistant(data)
+      content: [{ 
+        type: "text", 
+        text: `[Tried to execute command]\n\n${errorMessage}` 
+      }],
+      isError: true
     };
   }
 
@@ -365,18 +361,33 @@ const handler = async (toolCall) => {
   const { totalLines: stderrLines, truncatedContent: stderrContent } =
     formatOutput(stderr.trim());
   
-  const data = {
-    stdout: stdoutContent,
-    stdoutLines,
-    stderr: stderrContent,
-    stderrLines,
-    interrupted: result.interrupted || false
-  };
+  // Get the rendered text that would previously be returned in resultForAssistant
+  const cwd = PersistentShell.getInstance().pwd();
+  let prefix = '';
+  let errorMessage = stderrContent.trim();
+  const isError = (stderrContent.trim() || result.interrupted || result.code !== 0);
+  
+  // Determine the prefix based on whether there's an error
+  if (isError) {
+    prefix = `[Tried to execute command in ${cwd}]\n\n`;
+  } else {
+    prefix = `[Command executed in ${cwd}]\n\n`;
+  }
+  
+  if (result.interrupted) {
+    if (errorMessage) errorMessage += '\n';
+    errorMessage += '<e>Command was aborted before completion</e>';
+  }
+  
+  const hasBoth = stdoutContent.trim() && errorMessage;
+  const renderedContent = `${prefix}${stdoutContent.trim()}${hasBoth ? '\n' : ''}${errorMessage}`;
   
   return {
-    type: 'result',
-    data,
-    resultForAssistant: renderResultForAssistant(data)
+    content: [{ 
+      type: "text", 
+      text: renderedContent 
+    }],
+    isError: isError
   };
 };
 
