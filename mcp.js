@@ -1,4 +1,4 @@
-import { tools } from './tools.js';
+import { tools, logFinalResult } from './tools.js';
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { resolve } from 'path';
 import { createInterface } from 'readline';
@@ -537,20 +537,22 @@ class MCPServer {
       if (result.type === 'error' || result.error) {
         // Handle error result
         const errorText = result.resultForAssistant || result.error || 'An error occurred';
-        debug(`Tool execution error: ${errorText}`);
         
         content.push({
           type: 'text',
           text: errorText
         });
         
-        return {
+        const mcpResult = {
           content,
           isError: true
         };
+        
+        // Log the final MCP formatted result
+        logFinalResult(name, args, mcpResult);
+        
+        return mcpResult;
       } else if (result.type === 'image') {
-        // Handle image result
-        debug(`Tool returned image result`);
         content.push({
           type: 'image',
           data: result.base64,
@@ -558,7 +560,6 @@ class MCPServer {
         });
       } else {
         // Handle regular result (text)
-        debug(`Tool returned text/data result`);
         const text = result.resultForAssistant || JSON.stringify(result.data, null, 2);
         content.push({
           type: 'text',
@@ -566,10 +567,15 @@ class MCPServer {
         });
       }
       
-      return {
+      const mcpResult = {
         content,
         isError: false
       };
+      
+      // Log the final MCP formatted result
+      logFinalResult(name, args, mcpResult);
+      
+      return mcpResult;
     } catch (error) {
       debug('Tool execution failed:', error);
       throw new Error(`Tool execution failed: ${error.message}`);
