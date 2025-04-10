@@ -163,22 +163,29 @@ const handler = async (toolCall) => {
 
     if (result.length < MAX_FILES) {
       return {
-        type: 'result',
-        data: userTree, // Show user the tree without the warning
-        resultForAssistant: assistantTree, // Send warning only to assistant
+        content: [{ 
+          type: "text", 
+          text: userTree // Use userTree for both user and assistant display
+        }],
+        isError: false
       };
     } else {
       const userData = `${TRUNCATED_MESSAGE}${userTree}`;
-      const assistantData = `${TRUNCATED_MESSAGE}${assistantTree}`;
       return {
-        type: 'result',
-        data: userData, // Show user the truncated tree without the warning
-        resultForAssistant: assistantData, // Send warning only to assistant
+        content: [{ 
+          type: "text", 
+          text: userData // Use userData for both user and assistant display
+        }],
+        isError: false
       };
     }
   } catch (error) {
     return {
-      error: `Error listing directory: ${error.message}`
+      content: [{ 
+        type: "text", 
+        text: `Error listing directory: ${error.message}`
+      }],
+      isError: true
     };
   }
 };

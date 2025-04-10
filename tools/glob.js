@@ -96,13 +96,19 @@ const handler = async (toolCall) => {
     }
     
     return {
-      type: 'result',
-      outputObj,
-      resultForAssistant: output
+      content: [{ 
+        type: "text", 
+        text: output
+      }],
+      isError: false
     };
   } catch (error) {
     return {
-      error: error.message
+      content: [{ 
+        type: "text", 
+        text: error.message
+      }],
+      isError: true
     };
   }
 };
