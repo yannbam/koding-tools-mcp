@@ -241,7 +241,11 @@ const handler = async (toolCall) => {
     // Validate inputs
     if (old_string === new_string) {
       return {
-        error: 'No changes to make: old_string and new_string are exactly the same.'
+        content: [{ 
+          type: "text", 
+          text: 'No changes to make: old_string and new_string are exactly the same.'
+        }],
+        isError: true
       };
     }
 
@@ -253,7 +257,11 @@ const handler = async (toolCall) => {
     if (old_string === '') {
       if (existsSync(fullFilePath)) {
         return {
-          error: 'Cannot create new file - file already exists.'
+          content: [{ 
+            type: "text", 
+            text: 'Cannot create new file - file already exists.'
+          }],
+          isError: true
         };
       }
       
@@ -265,19 +273,22 @@ const handler = async (toolCall) => {
       writeTextContent(fullFilePath, new_string, 'utf8', 'LF');
       
       return {
-        type: 'result',
-        data: {
-          type: 'create',
-          filePath: fullFilePath
-        },
-        resultForAssistant: `Successfully created new file: ${fullFilePath}`
+        content: [{ 
+          type: "text", 
+          text: `Successfully created new file: ${fullFilePath}`
+        }],
+        isError: false
       };
     }
 
     // Handle file editing
     if (!existsSync(fullFilePath)) {
       return {
-        error: `File does not exist: ${file_path}`
+        content: [{ 
+          type: "text", 
+          text: `File does not exist: ${file_path}`
+        }],
+        isError: true
       };
     }
 
@@ -288,7 +299,11 @@ const handler = async (toolCall) => {
     // Check if old_string exists in the file
     if (!originalFile.includes(old_string)) {
       return {
-        error: 'String to replace not found in file.'
+        content: [{ 
+          type: "text", 
+          text: 'String to replace not found in file.'
+        }],
+        isError: true
       };
     }
     
@@ -296,7 +311,11 @@ const handler = async (toolCall) => {
     const matches = originalFile.split(old_string).length - 1;
     if (matches > 1) {
       return {
-        error: `Found ${matches} matches of the string to replace. For safety, this tool only supports replacing exactly one occurrence at a time. Add more lines of context to your edit and try again.`
+        content: [{ 
+          type: "text", 
+          text: `Found ${matches} matches of the string to replace. For safety, this tool only supports replacing exactly one occurrence at a time. Add more lines of context to your edit and try again.`
+        }],
+        isError: true
       };
     }
     
@@ -347,21 +366,22 @@ const handler = async (toolCall) => {
     //   })
     // };
     return {
-      type: 'result',
-      data: {
-        type: 'edit',
-        filePath: fullFilePath,
-        patch: patch,
-        snippet: snippet
-      },
-      resultForAssistant: `[Successfully edited file: ${fullFilePath}\nHere's the result of running \`cat -n\` on a snippet of the edited file]\n\n${addLineNumbers({
-        content: snippet,
-        startLine,
-      })}`
+      content: [{ 
+        type: "text", 
+        text: `[Successfully edited file: ${fullFilePath}\nHere's the result of running \`cat -n\` on a snippet of the edited file]\n\n${addLineNumbers({
+          content: snippet,
+          startLine,
+        })}`
+      }],
+      isError: false
     };
   } catch (error) {
     return {
-      error: `Error editing file: ${error.message}`
+      content: [{ 
+        type: "text", 
+        text: `Error editing file: ${error.message}`
+      }],
+      isError: true
     };
   }
 };
