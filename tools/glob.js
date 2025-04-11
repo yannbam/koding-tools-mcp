@@ -1,4 +1,5 @@
 import { glob } from 'glob';
+import { statSync } from 'fs';
 
 const name = 'GlobTool';
 
@@ -45,6 +46,24 @@ const handler = async (toolCall) => {
   const start = Date.now();
   
   try {
+    // First, check if the path exists and is accessible
+    try {
+      const stats = statSync(path);
+      if (!stats.isDirectory()) {
+        return {
+          type: 'error',
+          error: `Path is not a directory: ${path}`,
+          resultForAssistant: `Path is not a directory: ${path}`
+        };
+      }
+    } catch (error) {
+      return {
+        type: 'error',
+        error: `Cannot access directory: ${path} - ${error.message}`,
+        resultForAssistant: `Cannot access directory: ${path} - ${error.message}`
+      };
+    }
+  
     // Configure glob options
     const options = {
       cwd: path,
@@ -60,7 +79,16 @@ const handler = async (toolCall) => {
     }
     
     // Execute glob search
-    const paths = await glob(pattern, options);
+    let paths;
+    try {
+      paths = await glob(pattern, options);
+    } catch (error) {
+      return {
+        type: 'error',
+        error: `Error during glob search: ${error.message}`,
+        resultForAssistant: `Error during glob search: ${error.message}`
+      };
+    }
     
     // Sort by modification time
     const sortedPaths = paths.sort((a, b) => (a.mtimeMs ?? 0) - (b.mtimeMs ?? 0));

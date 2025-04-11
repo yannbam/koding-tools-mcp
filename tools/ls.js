@@ -1,4 +1,4 @@
-import { readdirSync } from 'fs';
+import { readdirSync, statSync } from 'fs';
 import { basename, isAbsolute, join, relative, resolve, sep } from 'path';
 
 const name = "LSTool";
@@ -148,6 +148,27 @@ const handler = async (toolCall) => {
   
   try {
     const fullFilePath = isAbsolute(path) ? path : resolve(process.cwd(), path);
+    
+    // First check if the path exists and is accessible
+    try {
+      const stats = statSync(fullFilePath);
+      // If it's not a directory, it's an error
+      if (!stats.isDirectory()) {
+        return {
+          type: 'error',
+          error: `Path is not a directory: ${fullFilePath}`,
+          resultForAssistant: `Path is not a directory: ${fullFilePath}`
+        };
+      }
+    } catch (error) {
+      // Path doesn't exist or can't be accessed
+      return {
+        type: 'error',
+        error: `Cannot access directory: ${fullFilePath} - ${error.message}`,
+        resultForAssistant: `Cannot access directory: ${fullFilePath} - ${error.message}`
+      };
+    }
+    
     const result = listDirectory(
       fullFilePath,
       process.cwd(),
