@@ -173,30 +173,33 @@ ${addLineNumbers({
 })}`;
       
       return {
-        content: [{ 
-          type: "text", 
-          text: message 
-        }],
-        isError: false
+        type: 'result',
+        data: {
+          filePath: file_path,
+          isUpdate: true,
+          oldContent: oldContent,
+          newContent: content
+        },
+        resultForAssistant: message
       };
     }
 
     const message = `File created successfully at: ${file_path}`;
     
     return {
-      content: [{ 
-        type: "text", 
-        text: message 
-      }],
-      isError: false
+      type: 'result',
+      data: {
+        filePath: file_path,
+        isUpdate: false,
+        newContent: content
+      },
+      resultForAssistant: message
     };
   } catch (error) {
     return {
-      content: [{ 
-        type: "text", 
-        text: `Error writing file: ${error.message}` 
-      }],
-      isError: true
+      type: 'error',
+      error: `Error writing file: ${error.message}`,
+      resultForAssistant: `Error writing file: ${error.message}`
     };
   }
 };

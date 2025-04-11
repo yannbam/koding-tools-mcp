@@ -142,29 +142,33 @@ const handler = async (toolCall) => {
     // Add stderr if there were errors, but still return output
     if (result.code !== 0) {
       return {
-        content: [{ 
-          type: "text", 
-          text: output + '\n\n' + stderr
-        }],
-        isError: true
+        type: 'error',
+        error: stderr,
+        data: {
+          command: command,
+          exitCode: result.code,
+          stdout: stdout
+        },
+        resultForAssistant: output + '\n\n' + stderr
       };
     }
 
 
     return {
-      content: [{ 
-        type: "text", 
-        text: output
-      }],
-      isError: false
+      type: 'result',
+      data: {
+        command: command,
+        exitCode: result.code,
+        numResults: numLines,
+        truncated: isTruncated
+      },
+      resultForAssistant: output
     };
   } catch (error) {
     return {
-      content: [{ 
-        type: "text", 
-        text: error.message
-      }],
-      isError: true
+      type: 'error',
+      error: error.message,
+      resultForAssistant: error.message
     };
   }
 };

@@ -241,11 +241,9 @@ const handler = async (toolCall) => {
     // Validate inputs
     if (old_string === new_string) {
       return {
-        content: [{ 
-          type: "text", 
-          text: 'No changes to make: old_string and new_string are exactly the same.'
-        }],
-        isError: true
+        type: 'error',
+        error: 'No changes to make: old_string and new_string are exactly the same.',
+        resultForAssistant: 'No changes to make: old_string and new_string are exactly the same.'
       };
     }
 
@@ -257,11 +255,9 @@ const handler = async (toolCall) => {
     if (old_string === '') {
       if (existsSync(fullFilePath)) {
         return {
-          content: [{ 
-            type: "text", 
-            text: 'Cannot create new file - file already exists.'
-          }],
-          isError: true
+          type: 'error',
+          error: 'Cannot create new file - file already exists.',
+          resultForAssistant: 'Cannot create new file - file already exists.'
         };
       }
       
@@ -273,22 +269,22 @@ const handler = async (toolCall) => {
       writeTextContent(fullFilePath, new_string, 'utf8', 'LF');
       
       return {
-        content: [{ 
-          type: "text", 
-          text: `Successfully created new file: ${fullFilePath}`
-        }],
-        isError: false
+        type: 'result',
+        data: {
+          filePath: fullFilePath,
+          isNew: true,
+          content: new_string
+        },
+        resultForAssistant: `Successfully created new file: ${fullFilePath}`
       };
     }
 
     // Handle file editing
     if (!existsSync(fullFilePath)) {
       return {
-        content: [{ 
-          type: "text", 
-          text: `File does not exist: ${file_path}`
-        }],
-        isError: true
+        type: 'error',
+        error: `File does not exist: ${file_path}`,
+        resultForAssistant: `File does not exist: ${file_path}`
       };
     }
 
@@ -299,11 +295,9 @@ const handler = async (toolCall) => {
     // Check if old_string exists in the file
     if (!originalFile.includes(old_string)) {
       return {
-        content: [{ 
-          type: "text", 
-          text: 'String to replace not found in file.'
-        }],
-        isError: true
+        type: 'error',
+        error: 'String to replace not found in file.',
+        resultForAssistant: 'String to replace not found in file.'
       };
     }
     
@@ -311,11 +305,9 @@ const handler = async (toolCall) => {
     const matches = originalFile.split(old_string).length - 1;
     if (matches > 1) {
       return {
-        content: [{ 
-          type: "text", 
-          text: `Found ${matches} matches of the string to replace. For safety, this tool only supports replacing exactly one occurrence at a time. Add more lines of context to your edit and try again.`
-        }],
-        isError: true
+        type: 'error',
+        error: `Found ${matches} matches of the string to replace.`,
+        resultForAssistant: `Found ${matches} matches of the string to replace. For safety, this tool only supports replacing exactly one occurrence at a time. Add more lines of context to your edit and try again.`
       };
     }
     
@@ -366,22 +358,24 @@ const handler = async (toolCall) => {
     //   })
     // };
     return {
-      content: [{ 
-        type: "text", 
-        text: `[Successfully edited file: ${fullFilePath}\nHere's the result of running \`cat -n\` on a snippet of the edited file]\n\n${addLineNumbers({
-          content: snippet,
-          startLine,
-        })}`
-      }],
-      isError: false
+      type: 'result',
+      data: {
+        filePath: fullFilePath,
+        patch: patch,
+        snippet: snippet,
+        startLine: startLine,
+        isNew: false
+      },
+      resultForAssistant: `[Successfully edited file: ${fullFilePath}\nHere's the result of running \`cat -n\` on a snippet of the edited file]\n\n${addLineNumbers({
+        content: snippet,
+        startLine,
+      })}`
     };
   } catch (error) {
     return {
-      content: [{ 
-        type: "text", 
-        text: `Error editing file: ${error.message}`
-      }],
-      isError: true
+      type: 'error',
+      error: `Error editing file: ${error.message}`,
+      resultForAssistant: `Error editing file: ${error.message}`
     };
   }
 };

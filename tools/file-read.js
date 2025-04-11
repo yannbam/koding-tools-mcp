@@ -63,11 +63,9 @@ const handler = async (toolCall) => {
   try {
     if (!existsSync(file_path)) {
       return {
-        content: [{ 
-          type: "text", 
-          text: `File not found: ${file_path}` 
-        }],
-        isError: true
+        type: 'error',
+        error: `File not found: ${file_path}`,
+        resultForAssistant: `File not found: ${file_path}`
       };
     }
 
@@ -80,20 +78,19 @@ const handler = async (toolCall) => {
       try {
         const buffer = readFileSync(file_path);
         return {
-          content: [{ 
-            type: "image", 
-            data: buffer.toString('base64'),
-            mimeType: `image/${ext.slice(1)}`
-          }],
-          isError: false
+          type: 'image',
+          base64: buffer.toString('base64'),
+          mediaType: `image/${ext.slice(1)}`,
+          data: {
+            filePath: file_path,
+            fileSize: stats.size
+          }
         };
       } catch (error) {
         return {
-          content: [{ 
-            type: "text", 
-            text: `Error reading image file: ${error.message}` 
-          }],
-          isError: true
+          type: 'error',
+          error: `Error reading image file: ${error.message}`,
+          resultForAssistant: `Error reading image file: ${error.message}`
         };
       }
     }
@@ -101,12 +98,11 @@ const handler = async (toolCall) => {
     // Handle text files
     // Check file size for text files
     if (fileSize > MAX_OUTPUT_SIZE && !offset && !limit) {
+      const errorMsg = `File content (${Math.round(fileSize / 1024)}KB) exceeds maximum allowed size (${Math.round(MAX_OUTPUT_SIZE / 1024)}KB). Please use offset and limit parameters to read specific portions of the file.`;
       return {
-        content: [{ 
-          type: "text", 
-          text: `File content (${Math.round(fileSize / 1024)}KB) exceeds maximum allowed size (${Math.round(MAX_OUTPUT_SIZE / 1024)}KB). Please use offset and limit parameters to read specific portions of the file.` 
-        }],
-        isError: true
+        type: 'error',
+        error: errorMsg,
+        resultForAssistant: errorMsg
       };
     }
 
@@ -129,12 +125,11 @@ const handler = async (toolCall) => {
     
     // Check if selected content is too large
     if (selectedContent.length > MAX_OUTPUT_SIZE) {
+      const errorMsg = `Selected content (${Math.round(selectedContent.length / 1024)}KB) exceeds maximum allowed size (${Math.round(MAX_OUTPUT_SIZE / 1024)}KB). Please use a smaller limit or read a different portion of the file.`;
       return {
-        content: [{ 
-          type: "text", 
-          text: `Selected content (${Math.round(selectedContent.length / 1024)}KB) exceeds maximum allowed size (${Math.round(MAX_OUTPUT_SIZE / 1024)}KB). Please use a smaller limit or read a different portion of the file.` 
-        }],
-        isError: true
+        type: 'error',
+        error: errorMsg,
+        resultForAssistant: errorMsg
       };
     }
 
@@ -143,19 +138,20 @@ const handler = async (toolCall) => {
       addLineNumbers(selectedContent, offset);
 
     return {
-      content: [{ 
-        type: "text", 
-        text: formattedOutput
-      }],
-      isError: false
+      type: 'result',
+      data: {
+        filePath: file_path,
+        totalLines: totalLines,
+        selectedLines: truncatedLines.length,
+        offset: offset
+      },
+      resultForAssistant: formattedOutput
     };
   } catch (error) {
     return {
-      content: [{ 
-        type: "text", 
-        text: `Error reading file: ${error.message}`
-      }],
-      isError: true
+      type: 'error',
+      error: `Error reading file: ${error.message}`,
+      resultForAssistant: `Error reading file: ${error.message}`
     };
   }
 };

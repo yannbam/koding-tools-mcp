@@ -382,13 +382,23 @@ const handler = async (toolCall) => {
   const hasBoth = stdoutContent.trim() && errorMessage;
   const renderedContent = `${prefix}${stdoutContent.trim()}${hasBoth ? '\n' : ''}${errorMessage}`;
   
-  return {
-    content: [{ 
-      type: "text", 
-      text: renderedContent 
-    }],
-    isError: isError
-  };
+  if (isError) {
+    return {
+      type: 'error',
+      error: errorMessage || 'Command execution failed',
+      resultForAssistant: renderedContent
+    };
+  } else {
+    return {
+      type: 'result',
+      data: {
+        stdout: stdoutContent.trim(),
+        stderr: errorMessage,
+        exitCode: result.code
+      },
+      resultForAssistant: renderedContent
+    };
+  }
 };
 
 const renderResultForAssistant = ({ interrupted, stdout, stderr }) => {

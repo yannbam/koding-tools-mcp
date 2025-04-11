@@ -163,29 +163,30 @@ const handler = async (toolCall) => {
 
     if (result.length < MAX_FILES) {
       return {
-        content: [{ 
-          type: "text", 
-          text: userTree // Use userTree for both user and assistant display
-        }],
-        isError: false
+        type: 'result',
+        data: {
+          result: result,
+          path: fullFilePath
+        },
+        resultForAssistant: userTree
       };
     } else {
       const userData = `${TRUNCATED_MESSAGE}${userTree}`;
       return {
-        content: [{ 
-          type: "text", 
-          text: userData // Use userData for both user and assistant display
-        }],
-        isError: false
+        type: 'result',
+        data: {
+          result: result,
+          path: fullFilePath,
+          truncated: true
+        },
+        resultForAssistant: userData
       };
     }
   } catch (error) {
     return {
-      content: [{ 
-        type: "text", 
-        text: `Error listing directory: ${error.message}`
-      }],
-      isError: true
+      type: 'error',
+      error: `Error listing directory: ${error.message}`,
+      resultForAssistant: `Error listing directory: ${error.message}`
     };
   }
 };

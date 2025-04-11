@@ -96,19 +96,20 @@ const handler = async (toolCall) => {
     }
     
     return {
-      content: [{ 
-        type: "text", 
-        text: output
-      }],
-      isError: false
+      type: 'result',
+      data: {
+        pattern: toolCall.input.pattern,
+        path: path,
+        numResults: numFiles,
+        truncated: truncated
+      },
+      resultForAssistant: output
     };
   } catch (error) {
     return {
-      content: [{ 
-        type: "text", 
-        text: error.message
-      }],
-      isError: true
+      type: 'error',
+      error: error.message,
+      resultForAssistant: error.message
     };
   }
 };
