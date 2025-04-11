@@ -4,36 +4,35 @@ const LOG_FILE = '/tmp/koding-tools.log';
 const SEPARATOR = '\n————————————————————————————————————————————————————————————————————————\n';
 
 /**
- * Log final MCP formatted result to the log file
+ * Log tool execution with both client-facing result and debug information
  * @param {string} toolName - Name of the tool
  * @param {object} input - Input arguments to the tool
- * @param {object} mcpResult - The MCP formatted result being sent to the client
+ * @param {object} clientResult - The exact result being sent to the client
+ * @param {object} debugInfo - Additional debug info (not sent to client)
  */
-export function logFinalResult(toolName, input, mcpResult) {
+export function logToolExecution(toolName, input, clientResult, debugInfo = {}) {
   const timestamp = new Date().toISOString();
   
-  // Create log entry array and add timestamp and tool
+  // Create log entry with clear sections
   const logEntry = [
     `Timestamp: ${timestamp}`,
     `Tool: ${toolName}`,
     `Input: ${JSON.stringify(input, null, 2)}`
   ];
   
-  // Add stderr if present
-  if (mcpResult.stderr) {
-    logEntry.push(`\nStderr: ${mcpResult.stderr}`);
+  // Add debug sections (only for logging, not sent to client)
+  if (debugInfo.stderr) {
+    logEntry.push(`\nStderr: ${debugInfo.stderr}`);
   }
   
-  // Add exitCode if present
-  if (mcpResult.exitCode !== undefined) {
-    logEntry.push(`ExitCode: ${mcpResult.exitCode}`);
+  if (debugInfo.exitCode !== undefined) {
+    logEntry.push(`ExitCode: ${debugInfo.exitCode}`);
   }
   
-  // Add the result
-  logEntry.push(`\nResult: ${JSON.stringify(mcpResult, null, 2)}`);
+  // Add the exact client result (what's actually sent)
+  logEntry.push(`\nClientResult: ${JSON.stringify(clientResult, null, 2)}`);
   logEntry.push(SEPARATOR);
   
-  // Write to log file
   fs.appendFileSync(LOG_FILE, logEntry.join('\n'));
 }
 

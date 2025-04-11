@@ -7,7 +7,7 @@ import * as GlobTool from './tools/glob.js';
 import * as LSTool from './tools/ls.js';
 // import * as AgentTool from './tools/agent.js';
 // import * as ArchitectTool from './tools/architect.js';
-import { createWrappedHandler, logFinalResult } from './logger.js';
+import { createWrappedHandler, logToolExecution } from './logger.js';
 
 // Create wrapped versions of each tool with logging functionality
 export const tools = [
@@ -42,5 +42,5 @@ export const tools = [
   // Add more tools as needed
 ];
 
-// Export the logFinalResult function for use in mcp.js
-export { logFinalResult };
+// Export the logging function for use in mcp.js
+export { logToolExecution };

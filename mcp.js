@@ -1,4 +1,4 @@
-import { tools, logFinalResult } from './tools.js';
+import { tools, logToolExecution } from './tools.js';
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { resolve } from 'path';
 import { createInterface } from 'readline';
@@ -543,23 +543,22 @@ class MCPServer {
           text: errorText
         });
         
-        // Create MCP result to send to client (without stderr and exitCode)
-        const mcpResult = {
+        // Create client result (exactly what gets sent to client)
+        const clientResult = {
           content,
           isError: true
         };
         
-        // Create extended log object with stderr and exitCode
-        const logObject = {
-          ...mcpResult,
+        // Create separate debug info (not sent to client)
+        const debugInfo = {
           stderr: result.error || errorText,
           exitCode: result.code || 1  // Default to error code 1 if not specified
         };
         
-        // Log the extended result with stderr and exitCode
-        logFinalResult(name, args, logObject);
+        // Log both client result and debug info separately
+        logToolExecution(name, args, clientResult, debugInfo);
         
-        return mcpResult;
+        return clientResult;
       } else if (result.type === 'image') {
         content.push({
           type: 'image',
@@ -575,23 +574,22 @@ class MCPServer {
         });
       }
       
-      // Create MCP result to send to client (without stderr and exitCode)
-      const mcpResult = {
+      // Create client result (exactly what gets sent to client)
+      const clientResult = {
         content,
         isError: false
       };
       
-      // Create extended log object with stderr and exitCode
-      const logObject = {
-        ...mcpResult,
-        stderr: result.data?.stderr,  // Add stderr if available
-        exitCode: result.data?.exitCode  // Add exitCode if available
+      // Create separate debug info (not sent to client)
+      const debugInfo = {
+        stderr: result.data?.stderr,
+        exitCode: result.data?.exitCode
       };
       
-      // Log the extended result with stderr and exitCode
-      logFinalResult(name, args, logObject);
+      // Log both client result and debug info separately
+      logToolExecution(name, args, clientResult, debugInfo);
       
-      return mcpResult;
+      return clientResult;
     } catch (error) {
       debug('Tool execution failed:', error);
       throw new Error(`Tool execution failed: ${error.message}`);
