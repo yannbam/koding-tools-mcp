@@ -410,7 +410,7 @@ const renderResultForAssistant = ({ interrupted, stdout, stderr }) => {
   
   // Determine the prefix based on whether there's an error
   if (stderr.trim() || interrupted) {
-    prefix = `[Tried to execute command in ${cwd}\n\n]`;
+    prefix = `[Tried to execute command in ${cwd}]\n\n`;
   } else {
     prefix = `[Command executed in ${cwd}]\n\n`;
   }

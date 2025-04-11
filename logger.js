@@ -11,15 +11,30 @@ const SEPARATOR = '\n———————————————————�
  */
 export function logFinalResult(toolName, input, mcpResult) {
   const timestamp = new Date().toISOString();
+  
+  // Create log entry array and add timestamp and tool
   const logEntry = [
     `Timestamp: ${timestamp}`,
     `Tool: ${toolName}`,
-    `Input: ${JSON.stringify(input, null, 2)}`,
-    `\nResult: ${JSON.stringify(mcpResult, null, 2)}`,
-    SEPARATOR
-  ].join('\n');
+    `Input: ${JSON.stringify(input, null, 2)}`
+  ];
   
-  fs.appendFileSync(LOG_FILE, logEntry);
+  // Add stderr if present
+  if (mcpResult.stderr) {
+    logEntry.push(`\nStderr: ${mcpResult.stderr}`);
+  }
+  
+  // Add exitCode if present
+  if (mcpResult.exitCode !== undefined) {
+    logEntry.push(`ExitCode: ${mcpResult.exitCode}`);
+  }
+  
+  // Add the result
+  logEntry.push(`\nResult: ${JSON.stringify(mcpResult, null, 2)}`);
+  logEntry.push(SEPARATOR);
+  
+  // Write to log file
+  fs.appendFileSync(LOG_FILE, logEntry.join('\n'));
 }
 
 /**

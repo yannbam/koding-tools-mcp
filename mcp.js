@@ -543,13 +543,21 @@ class MCPServer {
           text: errorText
         });
         
+        // Create MCP result to send to client (without stderr and exitCode)
         const mcpResult = {
           content,
           isError: true
         };
         
-        // Log the final MCP formatted result
-        logFinalResult(name, args, mcpResult);
+        // Create extended log object with stderr and exitCode
+        const logObject = {
+          ...mcpResult,
+          stderr: result.error || errorText,
+          exitCode: result.code || 1  // Default to error code 1 if not specified
+        };
+        
+        // Log the extended result with stderr and exitCode
+        logFinalResult(name, args, logObject);
         
         return mcpResult;
       } else if (result.type === 'image') {
@@ -567,13 +575,21 @@ class MCPServer {
         });
       }
       
+      // Create MCP result to send to client (without stderr and exitCode)
       const mcpResult = {
         content,
         isError: false
       };
       
-      // Log the final MCP formatted result
-      logFinalResult(name, args, mcpResult);
+      // Create extended log object with stderr and exitCode
+      const logObject = {
+        ...mcpResult,
+        stderr: result.data?.stderr,  // Add stderr if available
+        exitCode: result.data?.exitCode  // Add exitCode if available
+      };
+      
+      // Log the extended result with stderr and exitCode
+      logFinalResult(name, args, logObject);
       
       return mcpResult;
     } catch (error) {
