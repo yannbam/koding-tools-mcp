@@ -365,7 +365,8 @@ const handler = async (toolCall) => {
   const cwd = PersistentShell.getInstance().pwd();
   let prefix = '';
   let errorMessage = stderrContent.trim();
-  const isError = (stderrContent.trim() || result.interrupted || result.code !== 0);
+  // const isError = (stderrContent.trim() || result.interrupted || result.code !== 0);
+  const isError = (result.interrupted || result.code !== 0);  // don't count stderr output as error
   
   prefix = `[Command execution in ${cwd}]\n\n`;
   
