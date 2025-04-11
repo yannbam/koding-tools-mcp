@@ -321,7 +321,7 @@ const handler = async (toolCall) => {
     return {
       content: [{ 
         type: "text", 
-        text: `[Tried to execute command]\n\n${errorMessage}` 
+        text: `[Command execution aborted]\n\n${errorMessage}` 
       }],
       isError: true
     };
@@ -337,7 +337,7 @@ const handler = async (toolCall) => {
   stderr += (result.stderr || '').trim() + '\n';
   
   if (result.code !== 0) {
-    stderr += `Exit code ${result.code}`;
+    stderr += `[Exit code ${result.code}]`;
   }
   
   // Update read timestamps for any files referenced by the command
@@ -367,12 +367,8 @@ const handler = async (toolCall) => {
   let errorMessage = stderrContent.trim();
   const isError = (stderrContent.trim() || result.interrupted || result.code !== 0);
   
-  // Determine the prefix based on whether there's an error
-  if (isError) {
-    prefix = `[Tried to execute command in ${cwd}]\n\n`;
-  } else {
-    prefix = `[Command executed in ${cwd}]\n\n`;
-  }
+  prefix = `[Command execution in ${cwd}]\n\n`;
+  
   
   if (result.interrupted) {
     if (errorMessage) errorMessage += '\n';
@@ -409,11 +405,8 @@ const renderResultForAssistant = ({ interrupted, stdout, stderr }) => {
   let prefix = '';
   
   // Determine the prefix based on whether there's an error
-  if (stderr.trim() || interrupted) {
-    prefix = `[Tried to execute command in ${cwd}]\n\n`;
-  } else {
-    prefix = `[Command executed in ${cwd}]\n\n`;
-  }
+  prefix = `[Command execution in ${cwd}]\n\n`;
+  
   
   if (interrupted) {
     if (stderr) errorMessage += '\n';
