@@ -11,6 +11,7 @@ import { statSync } from 'fs';
 
 const name = "BashTool";
 const BANNED_COMMANDS = [
+  'sudo',
   'wget',
   'axel',
   'aria2c',
@@ -287,7 +288,7 @@ const handler = async (toolCall) => {
         // Check common execution wrappers
         const wrapperPatterns = [
           // Command wrappers followed by banned command
-          new RegExp(`\\b(?:sudo|time|nice|env)\\s+.*?\\b${banned}\\b`),
+          new RegExp(`\\b(?:time|nice|env)\\s+.*?\\b${banned}\\b`),
           // Find -exec or xargs followed by banned command
           new RegExp(`-exec\\s+.*?\\b${banned}\\b`),
           new RegExp(`\\bxargs\\s+.*?\\b${banned}\\b`),
@@ -319,11 +320,9 @@ const handler = async (toolCall) => {
     const errorMessage = `Error: The command contains banned command: ${bannedCmd}.\nAll banned commands: ${BANNED_COMMANDS.join(', ')}`;
     
     return {
-      content: [{ 
-        type: "text", 
-        text: `[Command execution aborted]\n\n${errorMessage}` 
-      }],
-      isError: true
+      type: 'error',
+      error: errorMessage,
+      resultForAssistant: `[Command execution aborted]\n\n${errorMessage}`
     };
   }
 

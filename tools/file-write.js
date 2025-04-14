@@ -160,7 +160,7 @@ const handler = async (toolCall) => {
       });
 
       // Use the existing renderResultForAssistant function for formatting
-      const message = `The file ${filePath} has been updated. Here's the result of running \`cat -n\` on a snippet of the edited file:
+      const message = `The file ${fullFilePath} has been overwritten. Here's the result of running \`cat -n\` on a snippet of the edited file:
 ${addLineNumbers({
   content:
     content.split(/\r?\n/).length > MAX_LINES_TO_RENDER_FOR_ASSISTANT
@@ -184,7 +184,7 @@ ${addLineNumbers({
       };
     }
 
-    const message = `File created successfully at: ${file_path}`;
+    const message = `File created successfully at: ${fullFilePath}`;
     
     return {
       type: 'result',
@@ -207,9 +207,9 @@ ${addLineNumbers({
 const renderResultForAssistant = ({ filePath, content, type }) => {
   switch (type) {
     case 'create':
-      return `File created successfully at: ${filePath}`;
+      return `File created successfully at: ${fullFilePath}`;
     case 'update':
-      return `The file ${filePath} has been updated. Here's the result of running \`cat -n\` on a snippet of the edited file:
+      return `The file ${fullFilePath} has been overwritten. Here's the result of running \`cat -n\` on a snippet of the edited file:
 ${addLineNumbers({
   content:
     content.split(/\r?\n/).length > MAX_LINES_TO_RENDER_FOR_ASSISTANT
