@@ -331,8 +331,12 @@ class MCPServer {
     debug('Processing initialize with params:', params);
     
     if (this.initialized) {
-      debug('Server already initialized, rejecting');
-      throw new Error('Server already initialized');
+      // Don't cancel handshake to allow for reconnects
+      this.initialized = false;
+
+      debug('Server reinitializing');
+      // debug('Server already initialized, rejecting');
+      // throw new Error('Server already initialized');
     }
 
     // Check protocol version
